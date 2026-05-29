@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all rule
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable global security functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validator for UserProfile
+    function isValidUserProfile(data) {
+      return data.uid is string && data.uid.size() == 28
+          && data.displayName is string && data.displayName.size() <= 100
+          && data.photoURL is string && data.photoURL.size() <= 500
+          && data.xp is int && data.xp >= 0 && data.xp <= 1000000
+          && data.fuel is int && data.fuel >= 0 && data.fuel <= 100
+          && data.warpStreak is int && data.warpStreak >= 0 && data.warpStreak <= 36500
+          && data.rank is string && data.rank.size() <= 50;
+    }
+
+    // Validator for MissionLog
+    function isValidMissionLog(data) {
+      return data.id is string && data.id.size() <= 128
+          && data.uid is string && data.uid.size() == 28
+          && data.habitId is string && data.habitId.size() <= 100
+          && data.stardate is string && data.stardate.size() <= 20
+          && data.completed is bool
+          && (data.timestamp is string || data.timestamp is timestamp);
+    }
+
+    // Validator for ConsoleEvent
+    function isValidConsoleEvent(data) {
+      return data.id is string && data.id.size() <= 128
+          && data.uid is string && data.uid.size() == 28
+          && data.timeLabel is string && data.timeLabel.size() <= 20
+          && data.text is string && data.text.size() <= 200
+          && data.xpReward is int && data.xpReward >= -100 && data.xpReward <= 1000
+          && data.type is string && (data.type == 'XP' || data.type == 'WARN' || data.type == 'INFO')
+          && (data.createdAt is string || data.createdAt is timestamp);
+    }
+
+    // Secure database routing rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) 
+                     && incoming().uid == existing().uid; // Prevent identity spoofing
+      allow delete: if false; // Users cannot self-delete their stats easily
+
+      match /missions/{missionId} {
+        allow get: if isOwner(userId) && isValidId(missionId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(missionId) && isValidMissionLog(incoming()) && incoming().uid == userId;
+        allow update: if isOwner(userId) && isValidId(missionId) && isValidMissionLog(incoming()) && incoming().uid == userId;
+        allow delete: if isOwner(userId) && isValidId(missionId);
+      }
+
+      match /events/{eventId} {
+        allow get: if isOwner(userId) && isValidId(eventId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(eventId) && isValidConsoleEvent(incoming()) && incoming().uid == userId;
+        allow update: if isOwner(userId) && isValidId(eventId) && isValidConsoleEvent(incoming()) && incoming().uid == userId;
+        allow delete: if isOwner(userId) && isValidId(eventId);
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Starship Command",
+  "description": "An immersive cyber-futuristic tactical habit logging cockpit console companion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

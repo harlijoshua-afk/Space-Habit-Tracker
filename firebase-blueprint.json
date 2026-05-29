@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Store individual commander metrics",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User unique identifier" },
+        "displayName": { "type": "string", "description": "Commander name" },
+        "photoURL": { "type": "string", "description": "Profile picture URL" },
+        "xp": { "type": "integer", "description": "Current Experience Points" },
+        "fuel": { "type": "integer", "description": "Current fuel reserves (0-100)" },
+        "warpStreak": { "type": "integer", "description": "Active consecutive streak in days" },
+        "rank": { "type": "string", "description": "Starship Command rank based on XP" },
+        "lastActive": { "type": "string", "format": "date-time", "description": "Last activity timestamp" }
+      },
+      "required": ["uid", "xp", "fuel", "warpStreak", "rank"]
+    },
+    "MissionLog": {
+      "title": "MissionLog",
+      "description": "Logs of completed and pending daily tracking habits",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string", "description": "Owner identifier" },
+        "habitId": { "type": "string", "description": "Target system habit key" },
+        "stardate": { "type": "string", "description": "Stardate cycle reference" },
+        "completed": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "habitId", "stardate", "completed", "timestamp"]
+    },
+    "ConsoleEvent": {
+      "title": "ConsoleEvent",
+      "description": "Historical telemetry and event logs for the ship's consoles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "timeLabel": { "type": "string", "description": "Formatting log timestamp, e.g. [08:00]" },
+        "text": { "type": "string", "description": "Log narrative text" },
+        "xpReward": { "type": "integer" },
+        "type": { "type": "string", "enum": ["XP", "WARN", "INFO"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "timeLabel", "text", "xpReward", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Unique user credentials and commander statistics"
+    },
+    "/users/{userId}/missions/{missionId}": {
+      "schema": "MissionLog",
+      "description": "Daily habit updates for systems"
+    },
+    "/users/{userId}/events/{eventId}": {
+      "schema": "ConsoleEvent",
+      "description": "Activity log metrics shown on the terminal screen"
+    }
+  }
+}
